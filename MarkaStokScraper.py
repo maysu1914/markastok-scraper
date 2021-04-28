@@ -22,7 +22,7 @@ class MarkaStokScraper:
         if type(data) is list:
             threads = [self.executor.submit(self.get_product_data, urljoin(self.base_url, url)) for url in data]
             for index, thread in enumerate(threads, start=1):
-                print(index)
+                # print(index)
                 product_data = thread.result()
                 if product_data:
                     self.result.append(product_data)
@@ -139,7 +139,7 @@ class MarkaStokScraper:
         """
         length = len(element.find_all("a", recursive=False))
         passives = len(element.select('.passive'))
-        return round((length - passives) / length * 100, 2)
+        return "{:.2f}%".format((length - passives) / length * 100, 2).replace('.', ',')
 
     def get_product_price(self, element):
         """
@@ -159,6 +159,6 @@ class MarkaStokScraper:
         :return: string
         """
         if element:
-            return element.text.replace('%', '').strip()
+            return element.text.replace('%', '').strip() + '%'
         else:
             return None
