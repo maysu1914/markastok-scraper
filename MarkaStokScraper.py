@@ -69,7 +69,7 @@ class MarkaStokScraper:
             #  check if page has a 'Sepete Ekle' button
             if soup.select('.ad-to'):
                 data['URL'] = url
-                data['SKU'] = self.get_text(soup.find('div', 'product-feature-content'))
+                data['Product Code'] = self.get_text(soup.find('div', 'product-feature-content'))
                 data['Product Name'] = self.get_product_name(soup.find('h1', 'product-name'))
                 data['Availability'] = self.get_availability(soup.find('div', 'variantList'))
                 data['Product Price'] = self.get_product_price(soup.find('span', 'currencyPrice discountedPrice'))
