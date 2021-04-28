@@ -1,4 +1,6 @@
+import re
 from concurrent.futures import ThreadPoolExecutor
+from urllib.parse import urljoin
 
 import requests as requests
 from bs4 import BeautifulSoup
@@ -18,8 +20,8 @@ class MarkaStokScraper:
         :return: list of dicts scraped data
         """
         if type(data) is list:
-            threads = [self.executor.submit(self.get_product_data, self.base_url + url) for url in data]
-            for index, thread in enumerate(threads):
+            threads = [self.executor.submit(self.get_product_data, urljoin(self.base_url, url)) for url in data]
+            for index, thread in enumerate(threads, start=1):
                 print(index)
                 product_data = thread.result()
                 if product_data:
@@ -27,7 +29,7 @@ class MarkaStokScraper:
                 else:
                     continue
         elif type(data) is str:
-            product_data = self.get_product_data(self.base_url + data)
+            product_data = self.get_product_data(urljoin(self.base_url, data))
             if product_data:
                 self.result.append(product_data)
             else:
@@ -69,17 +71,47 @@ class MarkaStokScraper:
             #  check if page has a 'Sepete Ekle' button
             if soup.select('.ad-to'):
                 data['URL'] = url
-                data['Product Code'] = self.get_text(soup.find('div', 'product-feature-content'))
+                data['Product Code'] = self.get_product_code(soup.find('div', 'product-feature-content'))
                 data['Product Name'] = self.get_product_name(soup.find('h1', 'product-name'))
                 data['Availability'] = self.get_availability(soup.find('div', 'variantList'))
                 data['Product Price'] = self.get_product_price(soup.find('span', 'currencyPrice discountedPrice'))
                 data['Offer'] = self.get_offer(soup.find('div', 'detay-indirim'))
                 data['Sale Price'] = self.get_product_price(soup.find('span', 'product-price'))
+                # print(data)
                 return data
             else:
                 return data
         else:
             return data
+
+    def get_product_code(self, element):
+        """
+        this site has some strange product code management system on product page
+        :param element:
+        :return: string
+        """
+        #  first digit always a number
+        #  number or uppercase character until the . (dot)
+        #  then number or uppercase character until the end
+        #  (yes, some codes has uppercase character after the . (dot) )
+        product_code_pattern = re.compile("^[0-9]{1}[A-Z0-9]+\.[A-Z0-9]+$")
+        if element:
+            #  get the last text, we know that the product code always at the end
+            last_text = element.text.split()[-1]
+
+            #  drop characters from left until the pattern is matched
+            for digit_number in reversed(range(3, len(last_text) + 1)):
+                text = last_text[-digit_number:]
+                if product_code_pattern.fullmatch(text):
+                    # print('accepted', text)
+                    return text
+                else:
+                    continue
+
+            #  if still no match
+            return None
+        else:
+            return None
 
     def get_text(self, element):
         """
@@ -107,7 +139,7 @@ class MarkaStokScraper:
         """
         length = len(element.find_all("a", recursive=False))
         passives = len(element.select('.passive'))
-        return (length - passives) / length * 100
+        return round((length - passives) / length * 100, 2)
 
     def get_product_price(self, element):
         """
