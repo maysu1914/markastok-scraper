@@ -11,7 +11,6 @@ class MarkaStokScraper:
 
     def __init__(self):
         self.executor = ThreadPoolExecutor()
-        self.result = []
 
     def scrap(self, data):
         """
@@ -19,22 +18,23 @@ class MarkaStokScraper:
         :param data: list of links or a link
         :return: list of dicts scraped data
         """
+        result = []
         if type(data) is list:
             threads = [self.executor.submit(self.get_product_data, urljoin(self.base_url, url)) for url in data]
             for index, thread in enumerate(threads, start=1):
                 # print(index)
                 product_data = thread.result()
                 if product_data:
-                    self.result.append(product_data)
+                    result.append(product_data)
                 else:
                     continue
         elif type(data) is str:
             product_data = self.get_product_data(urljoin(self.base_url, data))
             if product_data:
-                self.result.append(product_data)
+                result.append(product_data)
             else:
                 pass
-        return self.result
+        return result
 
     def get_page_content(self, url, counter=3):
         """
